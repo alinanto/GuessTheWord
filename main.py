@@ -91,7 +91,7 @@ def display_message(message):
     text = WORD_FONT.render(message,True,(0,0,0))
     screen.blit(text,(800//2 - text.get_width()//2 , 500//2 - text.get_height()//2))
     pygame.display.update()
-    pygame.time.delay(3000)
+    pygame.time.delay(1000)
 
 running = False
 #front page
@@ -166,18 +166,54 @@ while running :
         display_message("You Lost!,The Word is : "+word)
         running = False
 
+#writing player history to data.xlsx
 isFile=os.path.isfile('data.xlsx')
 if isFile is False:
-    data = pd.DataFrame({"player_name":[],"Chances":[],"W/L Status":[]})
+    data = pd.DataFrame({"Sl. No.":[],"player_name":[],"Chances left":[],"W/L Status":[]})
 else:
-    data=pd.read_excel('data.xlsx',index_col=0)
+    data=pd.read_excel('data.xlsx',index_col=None)
 
 if won:
     win_loss_status="WIN"
 else:
     win_loss_status="LOSS"
 
-data_new = pd.DataFrame({'player_name':[user_text],'Chances':[chancesleft],'W/L Status':[win_loss_status]})
+
+data_new = pd.DataFrame({'Sl. No.':[len(data.index)+1],'player_name':[user_text],'Chances left':[chancesleft],'W/L Status':[win_loss_status]})
 data = data.append(data_new,ignore_index = True)
-data.to_excel('data.xlsx')
+data.to_excel('data.xlsx',index=False)
+
+#creating file leaderboard.xlsx
+leaderboard = pd.DataFrame({"Rank":[],
+                            "player_name":[],
+                            "High Score":[],
+                            "Win percentage":[],
+                            "Total Games":[]})
+
+data.sort_values('Chances left',ascending=False,inplace=True)
+
+for index,row in data.iterrows() :
+    if row['player_name'] not in leaderboard['player_name'].tolist() :
+        if row['W/L Status'] == "WIN" :
+            winPercentage = 100
+        else :
+            winPercentage = 0
+        leader_new = pd.DataFrame({'Rank':[len(leaderboard.index)+1],
+                                    'player_name':[row['player_name']],
+                                    'High Score':[row['Chances left']],
+                                    'Win percentage':[winPercentage],
+                                    'Total Games':[1]})
+        leaderboard = leaderboard.append(leader_new,ignore_index = True)
+    else :
+        winPercentage = leaderboard.loc[ leaderboard['player_name']==row['player_name'] , 'Win percentage' ]
+        TotalGames = leaderboard.loc[leaderboard[ 'player_name']==row['player_name'] , 'Total Games' ]
+        if row['W/L Status'] == "WIN" :
+            winPercentage = (100 + (winPercentage * TotalGames)) / (TotalGames+1)
+        else :
+            winPercentage = (winPercentage * TotalGames) / (TotalGames+1)
+        leaderboard.loc[ leaderboard['player_name']==row['player_name'] , 'Win percentage' ] = winPercentage
+        leaderboard.loc[leaderboard[ 'player_name']==row['player_name'] , 'Total Games' ] = TotalGames + 1
+
+leaderboard.to_excel('leaderboard.xlsx',index=False)
+
 pygame.quit()
