@@ -17,13 +17,10 @@ pygame.display.set_icon(icon)
 
 NAME_FONT = pygame.font.SysFont('comicsans',24)
 game_text='ENTER YOUR NAME TO PLAY:'
-user_text= ' '
+user_text= ''
 
 #alphabet console
-global won
 RADIUS = 20
-waittick = 0
-msg = False
 GAP = 15
 letters = []
 startx = round((800 - (RADIUS * 2 + GAP) * 13) / 2)
@@ -48,6 +45,8 @@ guessed = []
 #chances left
 chances = 8
 chancesleft = 8
+waitMsg = 0
+msg = False
 
 FPS = 60
 clock = pygame.time.Clock()
@@ -62,6 +61,7 @@ def draw():
 
     text = TITLE_FONT.render("Guess The Word!!", 1, (0,0,0))
     screen.blit(text, (200, 70))
+
     if msg :
         screen.blit(game_msg,(210, 200))
 
@@ -79,7 +79,7 @@ def draw():
         if visible:
             pygame.draw.circle(screen, (0,0,0), (x, y), RADIUS, 3)
             text = LETTER_FONT.render(ltr, 1, (0,0,0))
-            screen.blit(text, (x - text.get_width()/2, y - text.get_height()/2))
+            screen.blit(text, (x - text.get_width()//2, y - text.get_height()//2))
 
 
     text = MESSAGE_FONT.render("You have total 8 chances to guess",True,(255,0,0))
@@ -89,12 +89,12 @@ def draw():
 def display_message(message):
     screen.fill((178,255,102))
     text = WORD_FONT.render(message,True,(0,0,0))
-    screen.blit(text,(800/2 - text.get_width()/2, 500/2 - text.get_height()/2))
+    screen.blit(text,(800//2 - text.get_width()//2 , 500//2 - text.get_height()//2))
     pygame.display.update()
     pygame.time.delay(3000)
 
 running = False
-
+#front page
 while not running :
     screen.fill((120,178,255))
     icon1 = pygame.image.load('icon1.png')
@@ -120,15 +120,17 @@ while not running :
                 running = True
     pygame.display.update()
 
-#while running:
-
+#game loop
 while running :
     clock.tick(FPS)
-    waittick += 1
-    if waittick == FPS*1 :  #for 1 seconds
+    draw()
+
+    #non-blocking delay for message
+    waitMsg += 1
+    if waitMsg == FPS*1 :  #for 1 seconds
         msg = False
 
-    draw()
+
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -148,11 +150,14 @@ while running :
                     waittick = 0
                     msg = True
                     break
+
+    #checking for game winning
     won = True
     for letter in word :
         if letter not in guessed :
             won = False
             break
+
     if won:
         display_message("You WON!")
         running = False
@@ -164,7 +169,6 @@ while running :
 isFile=os.path.isfile('data.xlsx')
 if isFile is False:
     data = pd.DataFrame({"player_name":[],"Chances":[],"W/L Status":[]})
-    data.to_excel('data.xlsx')
 else:
     data=pd.read_excel('data.xlsx',index_col=0)
 
@@ -174,6 +178,6 @@ else:
     win_loss_status="LOSS"
 
 data_new = pd.DataFrame({'player_name':[user_text],'Chances':[chancesleft],'W/L Status':[win_loss_status]})
-df = data.append(data_new,ignore_index = True)
-df.to_excel('data.xlsx')
+data = data.append(data_new,ignore_index = True)
+data.to_excel('data.xlsx')
 pygame.quit()
